@@ -2,7 +2,18 @@
 # Build your Java project and run tests with Apache Maven.
 # Add steps that analyze code, save build artifacts, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/java
+parameters:
+  - name: buildPath
+    type: string
+  - name: projectName
+    type: string
+  - name: applicationName
+    type: string
 
+variables:
+  ACR_SP_NAME: '很很科技'
+  ACR_SP_PASS: 'ckp2gep0MQD*njx0hxe'
+  
 trigger:
 - master
 
@@ -12,12 +23,24 @@ pool:
 steps:
 - task: Maven@3
   inputs:
-    mavenPomFile: 'pom.xml'
-    mavenOptions: '-Xmx3072m'
-    javaHomeOption: 'JDKVersion'
-    jdkVersionOption: '1.8'
-    jdkArchitectureOption: 'x64'
-    publishJUnitResults: true
-    testResultsFiles: '**/surefire-reports/TEST-*.xml'
-    goals: 'package'
-    options: '-T 4 -Dmaven.test.skip'
+              mavenPomFile: 'pom.xml'
+              mavenOptions: '-Xmx3072m'
+              #goals: 'clean com.coveo:fmt-maven-plugin:check install -am'
+              goals: 'clean install -e -am'
+              options: >-
+                -T 4
+                --batch-mode
+                -s .mvn/ci-settings.xml
+                --fail-at-end
+                -pl=${{ parameters.buildPath }}
+                -Drevision=$(Build.BuildNumber)
+                -P$(mavensetUp.profile)
+                -Dgib.buildUpstream=true
+                -Dgib.forceBuildModules=libs,${{ parameters.projectName }}
+                -Dgib.skipTestsForUpstreamModules=true
+                -Dimage.version=$(mavensetUp.imageTags)
+                -Dimage.version.outputFile=$(imageOutputFile)
+                -Dmaven.repo.local=/mvn-repo
+                -Dsurefire.skipTests=ture
+                -P$(mavensetUp.profile)
+
